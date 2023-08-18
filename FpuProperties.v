@@ -85,7 +85,7 @@ Section Properties.
       | |- _ = getBool ?P => destruct P; [rewrite e; simpl in *|]
       end.
       - simpl.
-        destruct (weq _ (wones expWidth) (natToWord expWidth 0)); simpl.
+        destruct (@weq _ (wones expWidth) (natToWord expWidth 0)); simpl.
         + pose proof (@wzero_wones expWidth ltac:(lia)).
           congruence.
         + (* unfold wzero. *)
@@ -101,7 +101,7 @@ Section Properties.
             
             rewrite split1_combine_wplus.
             match goal with
-            | |- getBool (weq _ (truncMsb (_ ^+ ?P)) _) = true => rewrite <- (natToWord_wordToNat _ P)
+            | |- getBool (@weq _ (truncMsb (_ ^+ ?P)) _) = true => rewrite <- (natToWord_wordToNat _ P)
             end.
             
             
@@ -117,7 +117,7 @@ Section Properties.
                assert (sth: 2 ^ expWidth - 1 + S (2 ^ expWidthMinus1) = 2 ^ expWidth + 2 ^ expWidthMinus1) by (pose proof (one_le_pow2 expWidth); lia).
                rewrite sth.
                match goal with
-               | |- getBool (weq _ ?P _) = true => 
+               | |- getBool (@weq _ ?P _) = true => 
                  rewrite <- (natToWord_wordToNat _ P)
                end.
                
@@ -145,9 +145,9 @@ Section Properties.
         cbn [natToWord].
         rewrite ?wplus_unit.
         match goal with
-        | |- context [weq _ ?P (natToWord expWidth 0)] => remember P as f; simpl in f
+        | |- context [@weq _ ?P (natToWord expWidth 0)] => remember P as f; simpl in f
         end.
-        assert (sth3: wordToNat _ f <> 2 ^ expWidth - 1). {
+        assert (sth3: @wordToNat _ f <> 2 ^ expWidth - 1). {
           intro.
           apply (f_equal (natToWord expWidth)) in H.
           rewrite natToWord_wordToNat in H.
@@ -156,12 +156,12 @@ Section Properties.
           tauto.
         }
         
-        assert (sth: wordToNat _ f < 2 ^ expWidth - 1). {
+        assert (sth: @wordToNat _ f < 2 ^ expWidth - 1). {
           pose proof (wordToNat_bound f).
           lia.
         }
         clear sth3 Heqf.
-        destruct (weq _ f (natToWord expWidth 0)); subst; simpl.
+        destruct (@weq _ f (natToWord expWidth 0)); subst; simpl.
         + unfold normDist.
           rewrite ?evalExpr_countLeadingZeros.
           simpl.
@@ -170,10 +170,10 @@ Section Properties.
           assert (sth2_5: 2 ^ (expWidth + 1) > sigWidthMinus1) by (assert (helper: expWidth + 1 = 2 + expWidthMinus1) by lia; rewrite helper; simpl; lia).
           match goal with
           | |- context[countLeadingZerosWord _ _ ?P] =>
-            pose proof (countLeadingZerosWord_le_len _ sth2_5 P)
+            pose proof (countLeadingZerosWord_le_len _ _ sth2_5 P)
           end.
           match goal with
-          | |- getBool (weq _ ?P _) = false => rewrite <- (natToWord_wordToNat _ P)
+          | |- getBool (@weq _ ?P _) = false => rewrite <- (natToWord_wordToNat _ P)
           end.
           rewrite ?wordToNat_split2; simpl.
           repeat match goal with
@@ -187,7 +187,7 @@ Section Properties.
                 apply Z.pow_lt_mono_r; lia. } *)
             (* pre_word_omega. *)
             match goal with
-            | |- context [weq _ ?w1 ?w2] => destruct (weq _ w1 w2); simpl
+            | |- context [@weq _ ?w1 ?w2] => destruct (@weq _ w1 w2); simpl
             end.
             ** assert (sth3: 2 ^ (expWidth+1) = 2 ^ (expWidthMinus1) + 2 ^ (expWidthMinus1) + 2 ^ expWidth) by (rewrite ?Nat.add_1_r; simpl; lia).
               rewrite wplus_comm.
@@ -210,15 +210,7 @@ Section Properties.
               assert (sth4: 2 ^ expWidth = 2 ^ (expWidthMinus1) + 2 ^ (expWidthMinus1) ).
               rewrite ?Nat.add_1_r; simpl; lia.
               rewrite sth4.
-              do 2 rewrite <- Nat.add_1_r.
-              rewrite Plus.plus_assoc_reverse.
-              apply Plus.plus_lt_compat_l.
               lia.
-              rewrite sth3.
-              rewrite Plus.plus_assoc_reverse.
-              do 2 rewrite <- Nat.add_1_r.
-              rewrite Plus.plus_assoc_reverse.
-              apply Plus.plus_lt_compat_l.
               lia.
               simpl.
               unfold wltu. unfold natToWord.
@@ -267,25 +259,22 @@ Section Properties.
                    apply Z.mod_pos_bound.
                    rewrite <- Zpow_of_nat. lia.
                  * unfold wordToNat. simpl.
-                   rewrite Z2Nat.id.
-                   rewrite Z.mod_mod.
+                   rewrite Z2Nat.id by (apply Z.mod_pos_bound; apply Z.pow_pos_nonneg; lia).
+                   rewrite Z.mod_mod by (apply Z.pow_nonzero; lia).
                    rewrite Z.mod_small.
-                   rewrite !pow2_add_mul.
-                   simpl.
-                   assert (sth3: 2 < 2 ^ expWidthMinus2).
-                   rewrite <- Nat.pow_1_r at 1.
-                   apply Nat.pow_lt_mono_r; lia.
-                   lia.
-                   split; try lia.
-                   apply Z2Nat.inj_lt; try lia.
-                   apply Z.pow_nonneg; lia.
-                   rewrite <- Zpow_of_nat, Nat2Z.id.
-                   assert (th: Z.to_nat 2 = 2); auto; rewrite th; clear th.
-                   rewrite <- Nat.pow_1_r at 1.
-                   apply Nat.pow_lt_mono_r; lia.
-                   apply Z.pow_nonzero; lia.
-                   apply Z.mod_pos_bound.
-                   apply Z.pow_pos_nonneg; lia.
+                   ++ rewrite !pow2_add_mul.
+                      simpl.
+                      assert (sth3: 2 < 2 ^ expWidthMinus2). {
+                        rewrite <- Nat.pow_1_r at 1.
+                        apply Nat.pow_lt_mono_r; lia.
+                      }
+                      lia.
+                   ++ split; try lia.
+                      apply Z2Nat.inj_lt; try lia.
+                      rewrite <- Zpow_of_nat, Nat2Z.id.
+                      assert (th: Z.to_nat 2 = 2) by (auto; rewrite th; clear th).
+                      rewrite <- Nat.pow_1_r at 1.
+                      apply Nat.pow_lt_mono_r; lia.
                  * auto.
                  * auto.
                  * auto.
@@ -298,13 +287,13 @@ Section Properties.
           rewrite wordToNat_natToWord_idempotent' with (n := 1) by lia.
           rewrite <- natToWord_plus.
           match goal with
-          | |- getBool (weq _ ?P _) && getBool (weq _ ?Q _) = false => rewrite <- (natToWord_wordToNat _ P);
-                                                                     rewrite <- (natToWord_wordToNat _ Q)
+          | |- getBool (@weq _ ?P _) && getBool (@weq _ ?Q _) = false => rewrite <- (natToWord_wordToNat _ P);
+                                                                         rewrite <- (natToWord_wordToNat _ Q)
           end.
           rewrite ?wordToNat_split2; simpl.
           rewrite wordToNat_split1; simpl.
           assert (sth1: 2 ^ expWidth >= 1) by lia.
-          assert (sth2: wordToNat _ f + S (2 ^ expWidthMinus1) < 2 ^ (expWidth + 1)). {
+          assert (sth2: @wordToNat _ f + S (2 ^ expWidthMinus1) < 2 ^ (expWidth + 1)). {
             assert (sth3: S expWidth = expWidth + 1) by lia; rewrite <- sth3; simpl.
             assert (sth4: 2 ^ (S expWidthMinus1) = 2 ^ expWidth) by (f_equal; lia).
             rewrite <- sth4 in *; simpl.
@@ -315,7 +304,7 @@ Section Properties.
           rewrite andb_false_iff.
           assert (sth3: 2 ^ expWidthMinus1 >= 1) by lia.
           assert (sth4: 2 ^ expWidth = 2 ^ (S expWidthMinus1)) by (f_equal; lia).
-          destruct (Compare_dec.le_lt_dec (2 ^ expWidthMinus1-1) (wordToNat _ f)); [ right | left ].
+          destruct (Compare_dec.le_lt_dec (2 ^ expWidthMinus1-1) (@wordToNat _ f)); [ right | left ].
           * rewrite mod_sub'; simpl; rewrite ?Nat.add_0_r; try nia.
             -- rewrite Nat.div_small; simpl; auto.
                rewrite sth4 in *; simpl in *.
@@ -335,9 +324,9 @@ Section Properties.
       apply andb_false_intro1.
       simpl in *.
       match goal with
-      | H: getBool (weq _ ?P ?Q) = true |- getBool (weq _ ?P ?R) = false => destruct (weq _ P Q) as [p|q]; [rewrite p; simpl |]
+      | H: getBool (@weq _ ?P ?Q) = true |- getBool (@weq _ ?P ?R) = false => destruct (@weq _ P Q) as [p|q]; [rewrite p; simpl |]
       end.
-      - destruct (weq _ (natToWord expWidth 0) (wones expWidth)); auto.
+      - destruct (@weq _ (natToWord expWidth 0) (wones expWidth)); auto.
         exfalso.
         apply wzero_wones in e; auto.
         lia.
@@ -370,20 +359,40 @@ Section Properties.
       congruence.
     Qed.
 
+    Lemma evalExprStructField n fk fs exprs idx:
+      evalExpr (BuildStruct (n := n) fk fs exprs) idx =
+        evalExpr (exprs idx).
+    Proof.
+      auto.
+    Qed.
+
+    Definition typeCast k1 k2 (heq: k1 = k2) (v1: type k1) : type k2 :=
+      match heq in (_ = y) return type y with
+      | eq_refl => v1
+      end.
+    
     Lemma infOrNaN_sExp_expWidthMinus2':
-      evalExpr (infOrNaN fn) = true -> getBool (weq _ (evalExpr (sExp_expWidthMinus2 (getRawFloat_from_FN fn))) WO~0) = true.
+      evalExpr (infOrNaN fn) = true -> getBool (@weq _ (evalExpr (sExp_expWidthMinus2 (getRawFloat_from_FN fn))) WO~0) = true.
     Proof.
       pose proof expWidth_ge_sigWidth as expWidth_ge_sigWidth.
+      cbn.
+      unfold getRawFloat_from_FN, getStructVal.
+      rewrite evalExprStructField.
+      cbn.
+      unfold evalExpr.
+      cbn [evalExpr].
+      cbn [evalExpr infOrNaN nth_Fin evalConstT eq_add_S].
+      unfold eq_add_S.
       simpl.
       rewrite ?split1_combine.
       intros.
       match type of H with
       | getBool ?P = _ => destruct P
       end; simpl in *; [clear H; rewrite e; clear e| discriminate].
-      destruct (weq _ (wones expWidth) (natToWord expWidth 0)); simpl; [pose proof (@wzero_wones expWidth ltac:(lia)); congruence| clear n].
+      destruct (@weq _ (wones expWidth) (natToWord expWidth 0)); simpl; [pose proof (@wzero_wones expWidth ltac:(lia)); congruence| clear n].
       rewrite wzero_wplus.
       match goal with
-      | |- getBool (weq _ (@truncMsb _ _ (@truncLsb _ _ (@truncLsb _ _ ?P))) _) = true =>
+      | |- getBool (@weq _ (@truncMsb _ _ (@truncLsb _ _ (@truncLsb _ _ ?P))) _) = true =>
         rewrite <- (natToWord_wordToNat _ P)
       end.
       rewrite wordToNat_wplus.
@@ -399,7 +408,7 @@ Section Properties.
       rewrite sth3.
       rewrite Nat.mod_small by (rewrite sth0, sth1; simpl; lia).
       match goal with
-      | |- getBool (weq _ (@truncMsb _ _ (@truncLsb _ _ ?P)) _) = _ =>
+      | |- getBool (@weq _ (@truncMsb _ _ (@truncLsb _ _ ?P)) _) = _ =>
         rewrite <- (natToWord_wordToNat _ P)
       end.
       rewrite wordToNat_split1.
@@ -409,14 +418,14 @@ Section Properties.
       rewrite Nat.mod_add by lia.
       rewrite Nat.mod_small by (rewrite sth1; simpl; lia).
       match goal with
-      | |- getBool (weq _ (@truncMsb _ _ ?P) _) = _ =>
+      | |- getBool (@weq _ (@truncMsb _ _ ?P) _) = _ =>
         rewrite <- (natToWord_wordToNat _ P)
       end.
       rewrite wordToNat_split1.
       rewrite wordToNat_natToWord_idempotent' by (rewrite sth1; simpl; lia).
       rewrite Nat.mod_same by lia.
       match goal with
-      | |- getBool (weq _ ?P _) = _ =>
+      | |- getBool (@weq _ ?P _) = _ =>
         rewrite <- (natToWord_wordToNat _ P)
       end.
       rewrite wordToNat_split2.
@@ -429,14 +438,46 @@ Section Properties.
       auto.
     Qed.
 
+    Lemma evalExprStructReadField n fk fs exprs idx:
+      evalExpr (ReadStruct (BuildStruct (n := n) fk fs exprs) idx) =
+        evalExpr (exprs idx).
+    Proof.
+      auto.
+    Qed.
+
+    Lemma evalExprStructReadFieldBetter ls idx:
+      evalExpr (ReadStruct (getStructVal ls) idx) =
+        evalExpr (nth_Fin_map2 (@projT1 _ _) (fun x => Expr type (SyntaxKind (snd x))) ls idx
+                               (projT2 (nth_Fin ls (cast idx (map_length_red (@projT1 _ _) ls))))).
+    Proof.
+      auto.
+    Qed.
+
     Lemma infOrNaN_sExp_expWidthMinus2:
       evalExpr (infOrNaN fn) = true -> evalExpr (sExp_expWidthMinus2 (getRawFloat_from_FN fn)) = WO~0.
     Proof.
       intros H.
       apply infOrNaN_sExp_expWidthMinus2' in H.
-      destruct (weq _ (evalExpr (sExp_expWidthMinus2 (getRawFloat_from_FN fn))) WO~0); [auto|discriminate].
+      destruct (@weq _ (evalExpr (sExp_expWidthMinus2 (getRawFloat_from_FN fn))) WO~0); [auto|discriminate].
     Qed.
 
+    Lemma evalExprStructNotation ls idx:
+      evalExpr (getStructVal ls) idx =
+        evalExpr
+          (nth_Fin_map2 (@projT1 _ _) _ ls idx
+             (projT2 (nth_Fin ls (cast idx (map_length_red (@projT1 _ _) ls))))).
+    Proof.
+      auto.
+    Qed.
+
+    Lemma wzero_wplus_nop sz (x: word sz): wzero sz ^+ x = x.
+    Proof.
+      rewrite wplus_comm.
+      apply wplus_wzero.
+    Qed.
+    
+    Opaque isZeroFractIn normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN sExp_expWidthMinus2 get_exp_from_RecFN.
     Lemma isNaN_or_Inf_infOrNaN:
       evalExpr (isNaN_or_Inf (getRecFN_from_FN fn)) = evalExpr (infOrNaN fn).
     Proof.
@@ -447,47 +488,311 @@ Section Properties.
       match type of sth with
       | ?P = true -> ?Q => case_eq P; simpl in *; intros H; [specialize (sth H); auto| clear sth; rewrite ?wzero_wplus]
       end.
-      rewrite ?split1_combine.
-      auto.
+      reflexivity.
+    Qed.
+    Transparent isZeroFractIn normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN sExp_expWidthMinus2 get_exp_from_RecFN.
+
+    Lemma evalExprStructReadFieldFull ls idx (x: type _):
+      evalExpr (@ReadStruct type _ _ _ (@getStructVal type ls) idx) = x <->
+        evalExpr
+          (nth_Fin_map2 (projT1 (P:=fun x : string * Kind => Expr type (SyntaxKind (snd x))))
+             (fun x : string * Kind => Expr type (SyntaxKind (snd x))) ls idx
+             (projT2
+                (nth_Fin ls
+                   (cast idx (map_length_red (projT1 (P:=fun x : string * Kind => Expr type (SyntaxKind (snd x)))) ls))))) = x.
+    Proof.
+      simpl.
+      tauto.
+    Qed.
+
+    Lemma wones_wconcat:
+      forall sz, sz > 0 -> wones sz = wconcat WO~1 (wones (pred sz)).
+    Proof.
+      induction sz; intros; try lia.
+      destruct sz; simpl.
+      - reflexivity.
+      - assert (l: S sz > 0) by lia.
+        specialize (IHsz l).
+        simpl in IHsz.
+        unfold wones, wconcat.
+        f_equal.
+        rewrite wordToZ_ZToWord by lia.
+        rewrite wordToZ_ZToWord by lia.
+        rewrite Z.mul_1_l.
+        rewrite Z.add_sub_assoc.
+        rewrite Z.add_diag.
+        f_equal.
+        rewrite <- Z.pow_succ_r by lia.
+        f_equal.
+        lia.
     Qed.
     
-    Lemma infOrNaN_isZeroNaNInf2_0_isZeroFractIn:
-      evalExpr (infOrNaN fn) = true -> getBool (weq _ (evalExpr (isZeroNaNInf2 (getRecFN_from_FN fn))) WO~0) = evalExpr (isZeroFractIn fn).
+    Lemma infOrNaN_isZeroNaNInf2_0_isZeroFractIn_helper:
+      evalExpr (infOrNaN fn) = true ->
+      (evalExpr (isZeroFractIn fn) = true ->
+       evalExpr (isZeroNaNInf2 (getRecFN_from_FN fn)) = WO~0).
     Proof.
-      intros sth1.
-      pose proof isSpecial_infOrNaN as sth2.
-      pose proof (infOrNaN_sExp_expWidthMinus2 sth1) as sth3.
-      simpl in *.
-      rewrite sth3.
-      rewrite sth2.
-      rewrite sth1.
-      clear sth2 sth3.
-      rewrite if_same.
-      rewrite wor_wzero.
-      rewrite andb_true_l.
+      intros sth1 sth2.
+      cbv delta [isZeroNaNInf2 getRecFN_from_FN].
+      cbv delta [getRecFN_from_RawFloat getRawFloat_from_FN].
+      cbv beta.
+      cbv zeta.
+      cbv iota.
       match goal with
-      | |- _ = ?P => destruct P; simpl; auto
+      | |- evalExpr
+             (@ReadStruct type ?n ?fk ?fs (@getStructVal type ?ls) ?idx) = ?x =>
+          rewrite (@evalExprStructReadFieldFull ls idx x)
       end.
+      simpl.
+      simpl in sth1.
+      simpl in sth2.
+      rewrite sth2.
+      rewrite andb_true_r.
+      apply getBool_weq in sth1.
+      rewrite sth1.
+      clear sth1 sth2.
+      rewrite wzero_wplus.
+      assert (sth: getBool (weq (wones expWidth) $0) = false). {
+        destruct (weq (wones expWidth) $0); simpl; auto.
+        assert (sth3: expWidth >= 1) by lia.
+        pose proof (wzero_wones sth3) as sth4.
+        rewrite e in sth4.
+        tauto. 
+      }
+      rewrite sth.
+      simpl.
+      rewrite andb_false_r.
+      rewrite wor_wzero.
+      rewrite wzero_wor.
+      rewrite split1_combine_wplus.
+      rewrite wones_wconcat by lia.
+      assert (Heq: Init.Nat.pred expWidth = expWidthMinus1) by lia.
+      rewrite Heq.
+      rewrite split1_combine_wplus.
+      rewrite wconcat_w_0.
+      rewrite wones_natToWord.
+      rewrite <- natToWord_plus.
+      pose proof (@Nat.sub_add 1 (2^expWidthMinus1) (one_le_pow2 _)) as sth2.
+      rewrite sth2.
+      unfold natToWord.
+      rewrite Zpow_of_nat.
+      unfold truncMsb.
+      simpl.
+      rewrite Z_mod_same_full.
+      rewrite Zdiv_0_l.
+      auto.
+    Qed.
+
+    Lemma SomeLemma0: (forall a b, b > 0 -> b < a -> (a + b)/a = 1)%Z.
+    Proof.
+      intros.
+      assert (Heq1: (a = 1*a)%Z) by lia.
+      rewrite Heq1 at 1.
+      rewrite Z_div_plus_full_l by lia.
+      rewrite Z.div_small by lia.
+      lia.
+    Qed.
+
+    Lemma SomeLemma1: truncMsb (outSz := expWidth + 1) (wconcat WO~0 (wones expWidth) ^+ wconcat (lsb := expWidth) WO~0 (wconcat (lsb := expWidthMinus1) WO~1 $ (1))) = natToWord 1 1.
+    Proof.
+      - unfold natToWord at 2; simpl.
+        unfold wones; simpl.
+        unfold wconcat at 3.
+        unfold natToWord.
+        assert (ez: wordVal 1 WO~1 = 1%Z) by auto.
+        rewrite ez; clear ez.
+        rewrite Z.mul_1_l.
+        rewrite getWordVal.
+        + simpl.
+          rewrite ? wconcat_0_sz1_w; simpl.
+          rewrite Zmod_small by lia.
+          rewrite Zmod_small.
+          * rewrite <- ZToWord_plus.
+            simpl.
+            rewrite Z.sub_add_simpl_r_r.
+            unfold truncMsb; simpl.
+            rewrite Zmod_small.
+            -- rewrite Nat.add_sub.
+               rewrite SomeLemma0; auto; try lia.
+               rewrite (Nat2Z.inj_add expWidthMinus1 1).
+               rewrite Z.pow_add_r by lia.
+               simpl.
+               unfold Z.pow_pos; simpl.
+               lia.
+            -- rewrite (Nat2Z.inj_add expWidth 1).
+               rewrite Z.pow_add_r by lia.
+               simpl.
+               unfold Z.pow_pos; simpl.
+               split; [lia|].
+               rewrite <- Zred_factor1.
+               apply Zplus_lt_compat_l.
+               rewrite (Nat2Z.inj_add expWidthMinus1 1).
+               rewrite Z.pow_add_r by lia.
+               lia.
+          * split; [lia|].
+            rewrite (Nat2Z.inj_add expWidthMinus1 1).
+            rewrite Z.pow_add_r by lia.
+            simpl.
+            unfold Z.pow_pos; simpl.
+            rewrite <- Zred_factor1.
+            apply Zplus_lt_compat_l.
+            rewrite Nat2Z.inj_add.
+            rewrite Z.pow_add_r by lia; simpl.
+            unfold Z.pow_pos; simpl.
+            lia.
+        + simpl.
+          assert ((Z.of_nat expWidthMinus1 >= 1)%Z) by lia.
+          split; [lia|].
+          apply Z.pow_gt_1; lia.
+    Qed.
+
+    Lemma SomeLemma2:
+      @truncMsb 1 expWidth (wones expWidth ^+ @wconcat 1 expWidthMinus1 expWidth WO~1 $1) = $1.
+    Proof.
+      unfold wones.
+      unfold wconcat.
+      assert (ez: wordVal 1 WO~1 = 1%Z) by auto.
+      rewrite ez; clear ez.
+      rewrite <- ZToWord_plus.
+      assert (ez: wordVal expWidthMinus1 $1 = 1%Z). {
+        unfold natToWord, wordVal; simpl.
+        rewrite Zmod_small; [lia|].
+        split; [lia|].
+        rewrite Nat2Z.inj_add.
+        simpl.
+        rewrite (Z.pow_add_r 2 (Z.of_nat expWidthMinus2) 1) by lia.
+        lia.
+      }
+      rewrite ez.
+      rewrite Z.sub_add_simpl_r_r.
+      rewrite Z.mul_1_l.
+      unfold ZToWord, truncMsb; simpl.
+      rewrite Z.add_mod by lia.
+      rewrite Z_mod_same_full; simpl.
+      rewrite Z.mod_mod by lia.
+      rewrite (Zmod_small (2^Z.of_nat expWidthMinus1) (2^Z.of_nat expWidth)).
+      - assert (Heq: expWidth - 1 = expWidthMinus1) by lia.
+        rewrite Heq.
+        rewrite Z.div_same by lia; auto.
+      - split; [lia|].
+        rewrite (Nat2Z.inj_add expWidthMinus1 1).
+        rewrite Z.pow_add_r by lia.
+        simpl.
+        unfold Z.pow_pos; simpl.
+        rewrite <- Zred_factor1.
+        lia.
+    Qed.
+
+    Lemma HsthEasy:
+      forall (w1 w2: word 1), w2 = WO~1 -> w1 ^| w2 = WO~1.
+    Proof.
+      intros.
+      subst.
+      unfold wor.
+      simpl.
+      destruct w1; simpl.
+      unfold Z.pow, Z.of_nat, Z.pow_pos in *.
+      simpl in *.
+      unfold Z.modulo; simpl.
+      assert (sth2: wordVal = 0%Z \/ wordVal = 1%Z). {
+        pose proof (Zmod_odd wordVal).
+        destruct (Z.odd wordVal); rewrite <- wordBound; auto.
+      }
+      destruct sth2; subst; auto.
+    Qed.
+
+    Lemma HsthEasy2:
+      getBool (weq (wones expWidth) $0) = false.
+    Proof.
+      destruct (weq (wones expWidth) $0); simpl; auto.
+      assert (sth3: expWidth >= 1) by lia.
+      pose proof (wzero_wones sth3) as sth4.
+      rewrite e in sth4.
+      tauto.
+    Qed.
+      
+    Lemma infOrNaN_isZeroNaNInf2_1_isZeroFractIn_helper:
+      evalExpr (infOrNaN fn) = true ->
+      (evalExpr (isZeroFractIn fn) = false ->
+       evalExpr (isZeroNaNInf2 (getRecFN_from_FN fn)) = WO~1).
+    Proof.
+      intros sth1 sth2.
+      cbv delta [isZeroNaNInf2 getRecFN_from_FN].
+      cbv delta [getRecFN_from_RawFloat getRawFloat_from_FN].
+      cbv beta.
+      cbv zeta.
+      cbv iota.
+      match goal with
+      | |- evalExpr
+             (@ReadStruct type ?n ?fk ?fs (@getStructVal type ?ls) ?idx) = ?x =>
+          rewrite (@evalExprStructReadFieldFull ls idx x)
+      end.
+      simpl.
+      simpl in sth1.
+      simpl in sth2.
+      rewrite sth2.
+      rewrite andb_false_r.
+      apply getBool_weq in sth1.
+      rewrite sth1.
+      clear sth1 sth2.
+      rewrite wzero_wplus.
+      rewrite HsthEasy2.
+      simpl.
+      rewrite andb_true_r.
+      rewrite wor_wzero.
+      rewrite split1_combine_wplus.
+      rewrite wones_wconcat at 1 by lia.
+      apply HsthEasy.
+      match goal with
+        | |- ?Full =>
+            match Full with
+            | (if (getBool (weq ?A $1) && getBool (weq ?B $1)) then ?P else ?Q) = ?P =>
+                let silly := fresh "silly" in
+                assert (silly: A = $1 /\ B = $1  -> Full)
+            end
+      end. {
+        intros [H1 H2].
+        rewrite H1, H2.
+        auto.
+      }
+      apply silly; clear silly.
+      rewrite wconcat_w_0; simpl.
+      split.
+      - apply SomeLemma1.
+      - apply SomeLemma2.
+    Qed.
+
+    Lemma infOrNaN_isZeroNaNInf2_0_isZeroFractIn:
+      evalExpr (infOrNaN fn) = true -> getBool (@weq _ (evalExpr (isZeroNaNInf2 (getRecFN_from_FN fn))) WO~0) = evalExpr (isZeroFractIn fn).
+    Proof.
+      intros h1.
+      pose proof (infOrNaN_isZeroNaNInf2_0_isZeroFractIn_helper h1) as sth1.
+      pose proof (infOrNaN_isZeroNaNInf2_1_isZeroFractIn_helper h1) as sth2.
+      case_eq (evalExpr (isZeroFractIn fn)); intros h.
+      - specialize (sth1 h).
+        rewrite sth1; auto.
+      - specialize (sth2 h).
+        rewrite sth2; auto.
     Qed.
 
     Lemma infOrNaN_isZeroNaNInf2_1_isZeroFractIn:
-      evalExpr (infOrNaN fn) = true -> getBool (weq _ (evalExpr (isZeroNaNInf2 (getRecFN_from_FN fn))) WO~1) = negb (evalExpr (isZeroFractIn fn)).
+      evalExpr (infOrNaN fn) = true -> getBool (@weq _ (evalExpr (isZeroNaNInf2 (getRecFN_from_FN fn))) WO~1) = negb (evalExpr (isZeroFractIn fn)).
     Proof.
-      intros sth1.
-      pose proof isSpecial_infOrNaN as sth2.
-      pose proof (infOrNaN_sExp_expWidthMinus2 sth1) as sth3.
-      simpl in *.
-      rewrite sth3.
-      rewrite sth2.
-      rewrite sth1.
-      rewrite if_same.
-      rewrite wor_wzero.
-      rewrite andb_true_l.
-      match goal with
-      | |- _ = ?P => destruct P; simpl; auto
-      end.
+      intros h1.
+      pose proof (infOrNaN_isZeroNaNInf2_0_isZeroFractIn_helper h1) as sth1.
+      pose proof (infOrNaN_isZeroNaNInf2_1_isZeroFractIn_helper h1) as sth2.
+      case_eq (evalExpr (isZeroFractIn fn)); intros h.
+      - specialize (sth1 h).
+        rewrite sth1; auto.
+      - specialize (sth2 h).
+        rewrite sth2; auto.
     Qed.
 
+    Opaque isNaN_or_Inf isZeroFractIn subnormFract
+      isZeroRecFN isSigNaNRawFloat isSigNaNRawFloat_frac isSNaN sExp_expWidth sExp_expWidthMinus1
+      isZeroNaNInf1 isZeroNaNInf0 get_exp_from_RecFN.
+    
     Lemma RawFloat_RecFN_FN_isNaN:
       evalExpr (getRawFloat_from_RecFN (getRecFN_from_FN fn)) Fin.F1 = evalExpr (getRawFloat_from_FN fn) Fin.F1.
     Proof.
@@ -505,8 +810,8 @@ Section Properties.
       end.
       - clear - e e0; rewrite e in e0; discriminate.
       - clear - n n0. exfalso; eapply word1_neq; eauto.
-        Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial.
 
     Lemma RawFloat_RecFN_FN_isInf:
       evalExpr (getRawFloat_from_RecFN (getRecFN_from_FN fn)) (Fin.FS Fin.F1) = evalExpr (getRawFloat_from_FN fn) (Fin.FS Fin.F1).
@@ -518,8 +823,8 @@ Section Properties.
       simpl.
       rewrite sth1, sth3.
       destruct (evalExpr (infOrNaN fn)); simpl; auto.
-      Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial.
 
     Lemma RawFloat_RecFN_FN_sign:
       evalExpr (getRawFloat_from_RecFN (getRecFN_from_FN fn)) (Fin.FS (Fin.FS (Fin.FS Fin.F1))) = evalExpr (getRawFloat_from_FN fn) (Fin.FS (Fin.FS (Fin.FS Fin.F1))).
@@ -527,6 +832,10 @@ Section Properties.
       auto.
     Qed.
 
+    Transparent isNaN_or_Inf isZeroFractIn subnormFract
+      isZeroRecFN isSigNaNRawFloat isSigNaNRawFloat_frac isSNaN sExp_expWidth sExp_expWidthMinus1
+      isZeroNaNInf1 isZeroNaNInf0 get_exp_from_RecFN.
+    
     (* copy-pasted from bbv, commit b98e19b *)
 
     Lemma isZeroRecFN_isZero:
@@ -560,7 +869,7 @@ Section Properties.
           | |- context [if getBool ?P then _ else _] => destruct P; [tauto|simpl; rewrite wzero_wor]
           end.
           match goal with
-          | |- context [wnot _ ?P] => rewrite <- (natToWord_wordToNat _ (wnot _ P))
+          | |- context [@wnot _ ?P] => rewrite <- (natToWord_wordToNat _ (@wnot _ P))
           end.
           rewrite ?wordToNat_wnot.
           match goal with
@@ -571,16 +880,16 @@ Section Properties.
           rewrite wordToNat_natToWord_idempotent'.
           * rewrite <- ?natToWord_plus.
             match goal with
-            | |- context[?A - wordToNat _ (?B) - 1 + (2 + ?P)] => pose proof (wordToNat_bound B) as sth0;
-                                                         assert (sth1: A > wordToNat _ B) by lia;
-                                                         assert (sth2: A - wordToNat _ B - 1 + (2 + P) = A + P + 1 - wordToNat _ B) by lia; rewrite ?sth2;
-                                                           remember B as val
+            | |- context[?A - @wordToNat _ (?B) - 1 + (2 + ?P)] => pose proof (wordToNat_bound B) as sth0;
+                                                                   assert (sth1: A > @wordToNat _ B) by lia;
+                                                                   assert (sth2: A - @wordToNat _ B - 1 + (2 + P) = A + P + 1 - @wordToNat _ B) by lia; rewrite ?sth2;
+                                                                   remember B as val
             end.
             Transparent normDist.
             unfold normDist in Heqval.
             simpl in Heqval.
             match goal with
-            | [H: val = if getBool (weq _ ?w1 ?w2) then _ else _ |- _] => destruct (weq _ w1 w2); simpl in *
+            | [H: val = if getBool (@weq _ ?w1 ?w2) then _ else _ |- _] => destruct (@weq _ w1 w2); simpl in *
             end.
             ***
                subst.
@@ -619,7 +928,7 @@ Section Properties.
                rewrite ?Nat.add_1_r.
                rewrite <- Nat.add_1_r.
                simpl.
-               apply Plus.plus_lt_compat_l.
+               apply -> Nat.add_lt_mono_l.
                rewrite ?Nat.add_0_r.
                rewrite <- mul2_add. 
                replace (2 ^ expWidthMinus2 * 2) with (2 ^ expWidthMinus2 * 2 ^ 1) by (simpl;reflexivity).
@@ -672,7 +981,7 @@ Section Properties.
                }
                rewrite sth5.
                rewrite <- Nat.add_0_r at 1.
-               apply Plus.plus_le_compat_l.
+               apply -> Nat.add_le_mono_l.
                lia.
                apply lt_minus'; try lia.
                rewrite Nat.add_1_r.
@@ -698,17 +1007,17 @@ Section Properties.
             end.
             match type of Heqval with
             | _ = countLeadingZerosWord _ _ ?P =>
-              pose proof (countLeadingZerosWord_lt_len _ sth4 n0) as sth5
+              pose proof (countLeadingZerosWord_lt_len _ _ sth4 _ n0) as sth5
             end.
             rewrite <- Heqval in sth5.
             apply wordToNat_lt1 in sth5.
             rewrite wordToNat_natToWord_idempotent' in sth5 by assumption.
-            assert (sth6: 2 ^ (expWidth + 1) + 2 ^ expWidthMinus1 + 1 - wordToNat _ val >= 2 ^ (expWidth + 1) + 2 ^ expWidthMinus1 - 2 ^ expWidthMinus2) by lia.
-            remember (2 ^ (expWidth + 1) + 2 ^ expWidthMinus1 + 1 - wordToNat _ val) as val2.
+            assert (sth6: 2 ^ (expWidth + 1) + 2 ^ expWidthMinus1 + 1 - @wordToNat _ val >= 2 ^ (expWidth + 1) + 2 ^ expWidthMinus1 - 2 ^ expWidthMinus2) by lia.
+            remember (2 ^ (expWidth + 1) + 2 ^ expWidthMinus1 + 1 - @wordToNat _ val) as val2.
             repeat match goal with
-                   | |- context[weq _ (@truncMsb ?A ?B ?P) _] =>
+                   | |- context[@weq _ (@truncMsb ?A ?B ?P) _] =>
                      rewrite <- (natToWord_wordToNat _ (@truncMsb A B P))
-                   | |- context[weq _ (@truncLsb ?A ?B ?P) _] =>
+                   | |- context[@weq _ (@truncLsb ?A ?B ?P) _] =>
                      rewrite <- (natToWord_wordToNat _ (@truncLsb A B P))
                    end.
             assert (sth7: val2 <= 2 ^ (expWidth + 1) + 2 ^ expWidthMinus1 + 1) by lia.
@@ -788,7 +1097,7 @@ Section Properties.
           rewrite andb_false_iff.
           left.
           match goal with
-          | |- getBool (weq _ ?P _) && getBool (weq _ ?Q _) = _ =>
+          | |- getBool (@weq _ ?P _) && getBool (@weq _ ?Q _) = _ =>
             rewrite <- (natToWord_wordToNat _ P);
               rewrite <- (natToWord_wordToNat _ Q)
           end.
@@ -800,9 +1109,9 @@ Section Properties.
           simpl.
           rewrite Nat.mod_small with (b := 2 ^ (expWidth + 1)); simpl.
           * match goal with
-              |- context [wordToNat _ (?A)] => remember A as val; simpl in *
+              |- context [@wordToNat _ (?A)] => remember A as val; simpl in *
             end.
-            assert (sth: wordToNat _ val + S (2 ^ expWidthMinus1) < 2 ^ expWidth * 2). {
+            assert (sth: @wordToNat _ val + S (2 ^ expWidthMinus1) < 2 ^ expWidth * 2). {
               pose proof (wordToNat_bound val).
               rewrite ?Nat.pow_add_r with (b := expWidthMinus1) in *; simpl in *.
               pose proof (pow2_zero expWidthMinus1).
@@ -817,12 +1126,12 @@ Section Properties.
             -- simpl.
                rewrite Nat.div_small_iff in H0 by (pose proof (pow2_zero expWidth); lia).
                rewrite Nat.mod_small by assumption.
-               assert (sth4: 2 ^ expWidthMinus1 * 1 <= wordToNat _ val + S (2 ^ expWidthMinus1)) by lia.
+               assert (sth4: 2 ^ expWidthMinus1 * 1 <= @wordToNat _ val + S (2 ^ expWidthMinus1)) by lia.
                simpl in *.
                pose proof (pow2_zero expWidthMinus1) as sth5.
                pose proof (Nat.div_le_lower_bound _ (2 ^ expWidthMinus1) 1 ltac:(lia) sth4) as sth6.
                assert (sth7:
-                         wordToNat _ val + S (2 ^ expWidthMinus1) < 2 ^ expWidthMinus1 * 2) by
+                         @wordToNat _ val + S (2 ^ expWidthMinus1) < 2 ^ expWidthMinus1 * 2) by
                    (rewrite Nat.pow_add_r with (b := expWidthMinus1) in H0; simpl in *; assumption).
                simpl in *.
                pose proof (Nat.div_lt_upper_bound _ (2 ^ expWidthMinus1) 2 ltac:(lia) sth7) as
@@ -833,7 +1142,7 @@ Section Properties.
                destruct n; auto; lia.
             -- destruct n; [auto|lia].
           * match goal with
-            | |- wordToNat _ ?P + _ < _ => pose proof (wordToNat_bound P)
+            | |- @wordToNat _ ?P + _ < _ => pose proof (wordToNat_bound P)
             end.
             rewrite ?Nat.pow_add_r in *; simpl in *.
             pose proof (pow2_zero expWidthMinus2).
@@ -842,8 +1151,8 @@ Section Properties.
           * auto.
           * auto.
           * auto.
-            Transparent isNaN_or_Inf infOrNaN isZeroFractIn isSpecial normDist subnormFract isZeroExpIn.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroFractIn isSpecial normDist subnormFract isZeroExpIn.
 
     Lemma RawFloat_RecFN_FN_isZero:
       evalExpr (getRawFloat_from_RecFN (getRecFN_from_FN fn))
@@ -859,17 +1168,17 @@ Section Properties.
       auto.
     Qed.
     
+    Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract adjustedExp isZeroExpIn isZero isZeroRecFN.
     Lemma RawFloat_RecFN_FN_sig:
       evalExpr (getRawFloat_from_RecFN (getRecFN_from_FN fn))
                (Fin.FS (Fin.FS (Fin.FS (Fin.FS (Fin.FS Fin.F1))))) =
       evalExpr (getRawFloat_from_FN fn)
                (Fin.FS (Fin.FS (Fin.FS (Fin.FS (Fin.FS Fin.F1))))).
     Proof.
-      Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract adjustedExp isZeroExpIn isZero isZeroRecFN.
       simpl.
       reflexivity.
-      Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract adjustedExp isZeroExpIn isZero isZeroRecFN.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract adjustedExp isZeroExpIn isZero isZeroRecFN.
 
     Lemma isSigNaNRawFloat_isSNaN:
       evalExpr (isSigNaNRawFloat (getRawFloat_from_RecFN (getRecFN_from_FN fn))) = evalExpr (isSNaN fn).
@@ -882,7 +1191,6 @@ Section Properties.
       unfold natToWord; simpl.
       pose proof (infOrNaN_isZeroNaNInf2_1_isZeroFractIn H) as sth.
       simpl in sth.
-      assert (sth' : ZToWord 1 1 = natToWord 1 1) by auto. rewrite sth'. clear sth'.
       rewrite sth.
       f_equal.
       case_eq (evalExpr (isZeroExpIn fn)); auto; intros.
@@ -907,12 +1215,12 @@ Section Properties.
       destruct a, b, c; intros; auto.
     Qed.
 
+    Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN.
     Lemma isFiniteNonzero_simple_complex:
       evalExpr (isFiniteNonzero (getRawFloat_from_RecFN (getRecFN_from_FN fn))) =
       evalExpr (isFiniteNonzero (getRawFloat_from_FN fn)).
     Proof.
-      Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
-             isSigNaNRawFloat_frac isSNaN.
       simpl.
       unfold eq_rect_r.
       simpl.
@@ -929,16 +1237,16 @@ Section Properties.
         + rewrite e in *.
           discriminate.
         + eapply word1_neq in n; eauto.
-          Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
-                      isSigNaNRawFloat_frac isSNaN.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN.
 
+    Opaque isNaN_or_Inf infOrNaN isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN.
     Lemma get_exp_from_RecFN_adjustedExp:
       evalExpr (isFiniteNonzero (getRawFloat_from_FN fn)) = true ->
       evalExpr (get_exp_from_RecFN (getRecFN_from_FN fn)) = evalExpr (adjustedExp fn).
     Proof.
-      Opaque isNaN_or_Inf infOrNaN isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
-             isSigNaNRawFloat_frac isSNaN.
       simpl.
       intros.
       repeat (rewrite andb_true_iff in *; dest).
@@ -967,35 +1275,33 @@ Section Properties.
         rewrite ?wor_wzer, ?wzero_wor.
         rewrite ?concat_split'.
         auto. 
-        Transparent isNaN_or_Inf infOrNaN isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
-                    isSigNaNRawFloat_frac isSNaN.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN.
 
+    Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN sExp_expWidth sExp_expWidthMinus1 sExp_expWidthMinus2 isZeroNaNInf1 isZeroNaNInf0 get_exp_from_RecFN adjustedExp.
     Lemma RawFloat_RecFN_FN_sExp:
       evalExpr (isFiniteNonzero (getRawFloat_from_RecFN (getRecFN_from_FN fn))) = true ->
       evalExpr (getRawFloat_from_RecFN (getRecFN_from_FN fn)) (Fin.FS (Fin.FS (Fin.FS (Fin.FS Fin.F1)))) =
       evalExpr (getRawFloat_from_FN fn) (Fin.FS (Fin.FS (Fin.FS (Fin.FS Fin.F1)))).
     Proof.
-      Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
-             isSigNaNRawFloat_frac isSNaN sExp_expWidth sExp_expWidthMinus1 sExp_expWidthMinus2 isZeroNaNInf1 isZeroNaNInf0 get_exp_from_RecFN adjustedExp.
       rewrite isFiniteNonzero_simple_complex.
       intros.
       simpl;
         rewrite ?split1_combine, ?combine_split.
       eapply get_exp_from_RecFN_adjustedExp; auto.
-      Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
-                  isSigNaNRawFloat_frac isSNaN sExp_expWidth sExp_expWidthMinus1 sExp_expWidthMinus2 isZeroNaNInf1 isZeroNaNInf0 get_exp_from_RecFN adjustedExp.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN sExp_expWidth sExp_expWidthMinus1 sExp_expWidthMinus2 isZeroNaNInf1 isZeroNaNInf0 get_exp_from_RecFN adjustedExp.
 
-    Print wltu.
-
+    Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
+        isSigNaNRawFloat_frac isSNaN get_exp_from_RecFN.
     Lemma isSubnormal_isZeroExpIn_simple:
       evalExpr (isFiniteNonzero (getRawFloat_from_FN fn)) = true ->
       evalExpr (isSubnormal (getRawFloat_from_FN fn)) = evalExpr (isZeroExpIn fn).
     Proof.
       intros finNonZero.
-      Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
-             isSigNaNRawFloat_frac isSNaN get_exp_from_RecFN.
       simpl.
       rewrite wconcat_w_0.
       rewrite wzero_wplus.
@@ -1016,12 +1322,12 @@ Section Properties.
         rewrite wordToNat_wnot in *; simpl in *.
         replace (ZToWord _ 2) with (natToWord expWidthMinus1 2); auto.
         rewrite wordToNat_natToWord_idempotent' in *.
-        + assert (sth0: 2 ^ (expWidth + 1) >= wordToNat _ (evalExpr (normDist fn))). {
+        + assert (sth0: 2 ^ (expWidth + 1) >= @wordToNat _ (evalExpr (normDist fn))). {
             pose proof (wordToNat_bound (evalExpr (normDist fn))) as sth2.
             simpl in sth2.
             lia.
           }
-          assert (sth1: 2 ^ (expWidth + 1) >= wordToNat _ (evalExpr (normDist fn)) + 1). {
+          assert (sth1: 2 ^ (expWidth + 1) >= @wordToNat _ (evalExpr (normDist fn)) + 1). {
             pose proof (wordToNat_bound (evalExpr (normDist fn))) as sth2.
             simpl in sth2.
             lia.
@@ -1031,7 +1337,7 @@ Section Properties.
             do 2 (rewrite Nat.pow_add_r; simpl).
             lia.
           }
-          assert (sth3: 2 + 2 ^ expWidthMinus1 >=  wordToNat _ (evalExpr (normDist fn)) + 1). {
+          assert (sth3: 2 + 2 ^ expWidthMinus1 >=  @wordToNat _ (evalExpr (normDist fn)) + 1). {
             Transparent normDist.
             unfold normDist; simpl.
             match goal with
@@ -1043,13 +1349,13 @@ Section Properties.
             lia.
             rewrite evalExpr_countLeadingZeros; simpl.
             match goal with
-            | |- _ >= wordToNat _ (countLeadingZerosWord _ _ ?P) + 1 =>
+            | |- _ >= @wordToNat _ (countLeadingZerosWord _ _ ?P) + 1 =>
               remember P as val;
-                pose proof (countLeadingZerosWord_le_len _ sth2 val); simpl in *
+                pose proof (@countLeadingZerosWord_le_len _ _ sth2 val); simpl in *
             end.
             rewrite wleu_wordToNat in H. apply Nat.leb_le in H.
             rewrite wordToNat_natToWord_idempotent' in H by assumption.
-            assert (sth15: 2 ^ expWidthMinus2 + 4 >= wordToNat _ (countLeadingZerosWord _ (expWidth + 1) val) + 1) by lia.
+            assert (sth15: 2 ^ expWidthMinus2 + 4 >= @wordToNat _ (countLeadingZerosWord _ (expWidth + 1) val) + 1) by lia.
             assert (sth25: 2 ^ expWidthMinus2 + 4 <= S (S (2 ^ expWidthMinus1))). {
               rewrite Nat.pow_add_r; simpl.
               assert (2 ^ expWidthMinus2 >= 2). {
@@ -1062,9 +1368,9 @@ Section Properties.
             }
             lia.
           }
-          assert (sth4: 2 ^ (expWidth + 1) - wordToNat _ (evalExpr (normDist fn)) - 1 +
+          assert (sth4: 2 ^ (expWidth + 1) - @wordToNat _ (evalExpr (normDist fn)) - 1 +
                         (2 + 2 ^ expWidthMinus1)
-                        = ((2 + 2 ^ expWidthMinus1) - (wordToNat _ (evalExpr (normDist fn)) + 1)) + 1 * 2 ^ (expWidth + 1)) by lia.
+                        = ((2 + 2 ^ expWidthMinus1) - (@wordToNat _ (evalExpr (normDist fn)) + 1)) + 1 * 2 ^ (expWidth + 1)) by lia.
           rewrite sth4 in *.
           rewrite Nat.mod_add by (pose proof (pow2_zero (expWidth + 1)); lia).
           rewrite Nat.mod_small.
@@ -1083,11 +1389,11 @@ Section Properties.
         apply Nat.ltb_nlt.
         (* pre_word_omega. *)
         rewrite wordToNat_combine; auto; simpl in *.
-        replace (wordToNat 1 WO~0) with 0; auto.
+        replace (@wordToNat 1 WO~0) with 0; auto.
         rewrite Nat.mul_0_r, Nat.add_0_r in *.
         rewrite wordToNat_wplus in *.
         rewrite ?wordToNat_combine; auto; simpl in *.
-        replace (wordToNat 1 WO~0) with 0; auto.
+        replace (@wordToNat 1 WO~0) with 0; auto.
         rewrite Nat.mul_0_r, Nat.mul_1_r, ?Nat.add_0_r in *.
         replace (ZToWord _ 1) with (natToWord expWidthMinus1 1); auto.
         replace (ZToWord _ 2) with (natToWord expWidthMinus1 2); auto.
@@ -1104,7 +1410,7 @@ Section Properties.
             lia.
             Opaque isZeroExpIn.
           * match goal with
-            | |- wordToNat _ ?a + _ < _ => pose proof (wordToNat_bound a) as sth1
+            | |- @wordToNat _ ?a + _ < _ => pose proof (wordToNat_bound a) as sth1
             end.
             rewrite ?Nat.pow_add_r in *; simpl in *.
             pose proof (pow2_zero expWidthMinus2) as sth2.
@@ -1113,16 +1419,16 @@ Section Properties.
         + rewrite Nat.pow_add_r; simpl.
           destruct expWidthMinus2; simpl; try lia.
           pose proof pow2_zero n; lia.
-      Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
-             isSigNaNRawFloat_frac isSNaN get_exp_from_RecFN. 
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN get_exp_from_RecFN. 
     
+    Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN get_exp_from_RecFN adjustedExp isFiniteNonzero.
     Lemma isSubnormal_isZeroExpIn_complex:
       evalExpr (isFiniteNonzero (getRawFloat_from_RecFN (getRecFN_from_FN fn))) = true ->
       evalExpr (isSubnormal (getRawFloat_from_RecFN (getRecFN_from_FN fn))) = evalExpr (isZeroExpIn fn).
     Proof.
-      Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
-             isSigNaNRawFloat_frac isSNaN get_exp_from_RecFN adjustedExp isFiniteNonzero.
       simpl.
       pose proof isFiniteNonzero_simple_complex as sth0.
       intros sth.
@@ -1133,16 +1439,16 @@ Section Properties.
       
       rewrite get_exp_from_RecFN_adjustedExp by auto.
       auto.
-      Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
-                  isSigNaNRawFloat_frac isSNaN get_exp_from_RecFN adjustedExp isFiniteNonzero.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN get_exp_from_RecFN adjustedExp isFiniteNonzero.
 
+    Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN.
     Lemma isFiniteNonzero_meaning:
       evalExpr (isFiniteNonzero (getRawFloat_from_RecFN (getRecFN_from_FN fn))) =
       negb (evalExpr (infOrNaN fn)) && negb (evalExpr (isZero fn)).
     Proof.
-      Local Opaque isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
-            isSigNaNRawFloat_frac isSNaN.
       simpl.
       unfold eq_rect_r.
       simpl.
@@ -1155,9 +1461,9 @@ Section Properties.
       end.
       - rewrite e in *; discriminate.
       - eapply word1_neq in n; eauto.
-      Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
-                  isSigNaNRawFloat_frac isSNaN.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN.
         
     Lemma sigWidthMinus1_lt_pow2_expWidth: (sigWidthMinus1 < 2 ^ expWidth).
     Proof.
@@ -1186,11 +1492,11 @@ Section Properties.
         destruct sth as [sth1|sth1]; try rewrite sth1; simpl in *; lia.
     Qed.
         
+    Opaque isZeroExpIn normDist.
     Lemma normalizedExp_adjustedExp:
       evalExpr (normalizedExp fn) = evalExpr (adjustedExp fn + $ (2 ^ expWidth))%kami_expr.
     Proof.
       unfold normalizedExp, adjustedExp.
-      Opaque isZeroExpIn normDist.
       simpl.
       pose proof (@pow2_lt_2 expWidthMinus1 ltac:(lia)) as sth.
       pose proof (@pow2_lt_2 expWidth ltac:(lia)) as sth1.
@@ -1299,6 +1605,7 @@ Section Properties.
       rewrite normalizedExp_adjustedExp. auto.
     Qed.
 
+    Opaque infOrNaN isSpecial.
     Lemma NF_RawFloat_FN:
         evalExpr (getNF_from_FN fn) = evalExpr (getNF_from_RawFloat (getRawFloat_from_FN fn)).
     Proof.
@@ -1306,7 +1613,6 @@ Section Properties.
       extensionality x.
       pose proof (mapOrFins_true x) as sth.
       unfold mapOrFins, getFins in *; simpl in sth.
-      Opaque infOrNaN isSpecial.
       repeat (destruct sth as [ | sth ]; subst);
       [ auto
       | apply NF_RawFloat_FN_sExp
@@ -1315,8 +1621,8 @@ Section Properties.
       | simpl; rewrite isSpecial_infOrNaN; auto
       | simpl; rewrite isSpecial_infOrNaN; auto
       | inversion sth].
-      Transparent infOrNaN isSpecial.
     Qed.
+    Transparent infOrNaN isSpecial.
     
     Lemma classifyImpl_correct lenMinus10: evalExpr (classify_impl fn lenMinus10) = evalExpr (classify_spec fn lenMinus10).
     Proof.
@@ -1335,7 +1641,6 @@ Section Properties.
         rewrite isNaN_or_Inf_infOrNaN.
         case_eq (evalExpr (infOrNaN fn)); intros sth2; simpl; auto.
         specialize (sth sth2).
-        assert (sth' : ZToWord 1 1 = natToWord 1 1) by auto; rewrite sth'; clear sth'.
         rewrite sth.
         auto.
       - simpl.
@@ -1344,6 +1649,7 @@ Section Properties.
       - simpl.
         pose proof infOrNaN_isZeroNaNInf2_0_isZeroFractIn as sth.
         simpl in sth.
+        assert (sth' : ZToWord 1 0 = natToWord 1 0) by auto; rewrite sth' in sth; clear sth'.
         rewrite isNaN_or_Inf_infOrNaN.
         case_eq (evalExpr (infOrNaN fn)); intros sth2; simpl; auto.
         specialize (sth sth2); auto.
@@ -1404,7 +1710,7 @@ Section Properties.
             rewrite H.
             pose proof (@wzero_wones expWidth ltac:(lia)) as sth.
             simpl in *.
-            destruct (weq _ (wones expWidth) (natToWord expWidth 0)); simpl; auto.
+            destruct (@weq _ (wones expWidth) (natToWord expWidth 0)); simpl; auto.
             rewrite e in *.
             tauto.
             Opaque infOrNaN isZeroExpIn.
@@ -1464,7 +1770,7 @@ Section Properties.
             rewrite H.
             pose proof (@wzero_wones expWidth ltac:(lia)) as sth.
             simpl in *.
-            destruct (weq _ (wones expWidth) (natToWord expWidth 0)); simpl; auto.
+            destruct (@weq _ (wones expWidth) (natToWord expWidth 0)); simpl; auto.
             rewrite e in *.
             tauto.
             Opaque infOrNaN isZeroExpIn.
@@ -1504,15 +1810,14 @@ Section Properties.
         simpl in sth.
         case_eq (evalExpr (infOrNaN fn)); intros sth2; simpl; auto.
         + specialize (sth sth2); auto.
-          replace (ZToWord 1 0) with (natToWord 1 0); auto.
           rewrite sth.
           rewrite andb_true_r.
           auto.
         + rewrite andb_false_r; simpl.
           auto.
-          Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract adjustedExp isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
-                      isSigNaNRawFloat_frac isSNaN isFiniteNonzero isSubnormal.
     Qed.
+    Transparent isNaN_or_Inf infOrNaN isZeroNaNInf2 isZeroFractIn isSpecial normDist subnormFract adjustedExp isZeroExpIn isZero isZeroRecFN isSigNaNRawFloat
+      isSigNaNRawFloat_frac isSNaN isFiniteNonzero isSubnormal.
   End FN.
 
   Inductive emptyRegsRel: RegsT -> RegsT -> Prop :=
