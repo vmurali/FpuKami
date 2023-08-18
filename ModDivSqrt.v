@@ -2,6 +2,7 @@ Require Import Vector.
 Import VectorNotations.
 Require Import Kami.AllNotations FpuKami.Definitions FpuKami.Classify FpuKami.Round.
 Require Import List.
+Require Import Psatz.
 Import ListNotations.
 
 (*
@@ -154,7 +155,7 @@ Section DivSqrt.
                                            else newExp));
                   "majorExc"    ::= majorExc ;
                   "oddExp"      ::= lsbExp == $1
-      })); clear; abstract (Omega.omega).
+      })); clear; abstract lia.
   Defined.
 
   Definition getLoopInit ty (inp: inpK @# ty) : k @# ty.
@@ -179,7 +180,7 @@ Section DivSqrt.
        (STRUCT {"sig"     ::= $ 0 ;
                 "rem"     ::= rem ;
                 "summary" ::= rem != $ 0}) : k @# ty).
-    abstract (clear; Omega.omega).
+    abstract (clear; lia).
   Defined.
 
   Definition getNonLoopVal := getLoopInit.
@@ -275,7 +276,7 @@ Section DivSqrt.
                                     "invalidExc"  ::= #invalidExc;
                                     "infiniteExc" ::= #infiniteExc });
         RetE #out);
-      try abstract (simpl; Omega.omega).
+      try abstract (simpl; lia).
   Defined.
 
   Definition combine1 ty (op: opK @# ty) (n: Bit (Nat.log2_up (numIter + 2)) @# ty)
