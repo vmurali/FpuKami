@@ -1507,6 +1507,8 @@ Section Properties.
         lia.
       }
       pose proof (one_lt_pow2 expWidthMinus2) as sth4.
+      rewrite ?wzero_wplus.
+      rewrite <- ?wsub_as_wnot.
       match goal with
       | |- context[if ?X then _ else _] => destruct X eqn:Heq
       end.
