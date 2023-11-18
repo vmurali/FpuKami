@@ -359,8 +359,8 @@ Section Properties.
       congruence.
     Qed.
 
-    Lemma evalExprStructField n fk fs exprs idx:
-      evalExpr (BuildStruct (n := n) fk fs exprs) idx =
+    Lemma evalExprStructField n fsk exprs idx:
+      evalExpr (BuildStruct (n := n) fsk exprs) idx =
         evalExpr (exprs idx).
     Proof.
       auto.
@@ -438,8 +438,8 @@ Section Properties.
       auto.
     Qed.
 
-    Lemma evalExprStructReadField n fk fs exprs idx:
-      evalExpr (ReadStruct (BuildStruct (n := n) fk fs exprs) idx) =
+    Lemma evalExprStructReadField n fk exprs idx:
+      evalExpr (ReadStruct (BuildStruct (n := n) fk exprs) idx) =
         evalExpr (exprs idx).
     Proof.
       auto.
@@ -494,7 +494,7 @@ Section Properties.
       isSigNaNRawFloat_frac isSNaN sExp_expWidthMinus2 get_exp_from_RecFN.
 
     Lemma evalExprStructReadFieldFull ls idx (x: type _):
-      evalExpr (@ReadStruct type _ _ _ (@getStructVal type ls) idx) = x <->
+      evalExpr (@ReadStruct type _ _ (@getStructVal type ls) idx) = x <->
         evalExpr
           (nth_Fin_map2 (projT1 (P:=fun x : string * Kind => Expr type (SyntaxKind (snd x))))
              (fun x : string * Kind => Expr type (SyntaxKind (snd x))) ls idx
@@ -541,7 +541,7 @@ Section Properties.
       cbv iota.
       match goal with
       | |- evalExpr
-             (@ReadStruct type ?n ?fk ?fs (@getStructVal type ?ls) ?idx) = ?x =>
+             (@ReadStruct type ?n ?fk (@getStructVal type ?ls) ?idx) = ?x =>
           rewrite (@evalExprStructReadFieldFull ls idx x)
       end.
       simpl.
@@ -725,7 +725,7 @@ Section Properties.
       cbv iota.
       match goal with
       | |- evalExpr
-             (@ReadStruct type ?n ?fk ?fs (@getStructVal type ?ls) ?idx) = ?x =>
+             (@ReadStruct type ?n ?fk (@getStructVal type ?ls) ?idx) = ?x =>
           rewrite (@evalExprStructReadFieldFull ls idx x)
       end.
       simpl.
