@@ -448,7 +448,7 @@ Section Properties.
     Lemma evalExprStructReadFieldBetter ls idx:
       evalExpr (ReadStruct (getStructVal ls) idx) =
         evalExpr (nth_Fin_map2 (@projT1 _ _) (fun x => Expr type (SyntaxKind (snd x))) ls idx
-                               (projT2 (nth_Fin ls (cast idx (map_length_red (@projT1 _ _) ls))))).
+                               (projT2 (nth_Fin ls (Fin.cast idx (map_length_red (@projT1 _ _) ls))))).
     Proof.
       auto.
     Qed.
@@ -465,7 +465,7 @@ Section Properties.
       evalExpr (getStructVal ls) idx =
         evalExpr
           (nth_Fin_map2 (@projT1 _ _) _ ls idx
-             (projT2 (nth_Fin ls (cast idx (map_length_red (@projT1 _ _) ls))))).
+             (projT2 (nth_Fin ls (Fin.cast idx (map_length_red (@projT1 _ _) ls))))).
     Proof.
       auto.
     Qed.
@@ -500,7 +500,7 @@ Section Properties.
              (fun x : string * Kind => Expr type (SyntaxKind (snd x))) ls idx
              (projT2
                 (nth_Fin ls
-                   (cast idx (map_length_red (projT1 (P:=fun x : string * Kind => Expr type (SyntaxKind (snd x)))) ls))))) = x.
+                   (Fin.cast idx (map_length_red (projT1 (P:=fun x : string * Kind => Expr type (SyntaxKind (snd x)))) ls))))) = x.
     Proof.
       simpl.
       tauto.
