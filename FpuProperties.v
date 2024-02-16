@@ -1558,7 +1558,7 @@ Section Properties.
         rewrite <- wplus_assoc.
         apply word_cancel_l.
         rewrite wconcat_w_0.
-        rewrite combine_shiftl_plus_n; [| intuition].
+        rewrite combine_shiftl_plus_n; [| intuition auto with *].
         rewrite <- natToWord_plus.
         rewrite combine_natToWord_wzero; [ |lia].
         symmetry.

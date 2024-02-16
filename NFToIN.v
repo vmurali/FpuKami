@@ -49,7 +49,7 @@ Section Definitions.
       Definition ZeroExpand n sz `(i: Expr ty (SyntaxKind (Bit n)))
         :Expr ty (SyntaxKind (Bit (n + sz))).
       Proof.
-        refine (castBits _ ({< i, $$(wzero sz) >})); abstract intuition.
+        refine (castBits _ ({< i, $$(wzero sz) >})); abstract (intuition auto with *).
       Defined.
 
       Lemma expWidth_ge_sigWidth_local:
