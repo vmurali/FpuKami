@@ -239,9 +239,9 @@ Section Properties.
                assert (sth6: rem < 2 ^ expWidthMinus1) by lia.
                assert (sth7: 2 ^ (expWidth + 1) - rem - 1 + S (S (2 ^ expWidthMinus1)) = 2 ^ (expWidth + 1) + (S (2 ^ expWidthMinus1) - rem)) by lia.
                rewrite sth7.
-               rewrite Nat.add_mod by lia.
-               rewrite Nat.mod_same by lia; simpl.
-               destruct rem; simpl; rewrite ?Nat.mod_mod by lia; rewrite Nat.mod_small;
+               rewrite Nat.Div0.add_mod by lia.
+               rewrite Nat.Div0.mod_same by lia; simpl.
+               destruct rem; simpl; rewrite ?Nat.Div0.mod_mod by lia; rewrite Nat.mod_small;
                  rewrite ?(Nat.pow_add_r _ expWidthMinus1 1); simpl; try nia.
                ++ assert (sth8: expWidth + 1 = 2 + expWidthMinus1) by lia; rewrite sth8; simpl; nia.
                ++ assert (sth8: expWidth + 1 = 2 + expWidthMinus1) by lia; rewrite sth8; simpl; nia.
@@ -415,7 +415,7 @@ Section Properties.
       rewrite wordToNat_natToWord_idempotent' by (rewrite sth0, sth1; simpl; lia).
       assert (sth4: 2 ^ expWidth + 2 ^ expWidthMinus1 = 2 ^ expWidthMinus1 + 1 * 2 ^ expWidth) by lia.
       rewrite sth4.
-      rewrite Nat.mod_add by lia.
+      rewrite Nat.Div0.mod_add by lia.
       rewrite Nat.mod_small by (rewrite sth1; simpl; lia).
       match goal with
       | |- getBool (@weq _ (@truncMsb _ _ ?P) _) = _ =>
@@ -423,14 +423,14 @@ Section Properties.
       end.
       rewrite wordToNat_split1.
       rewrite wordToNat_natToWord_idempotent' by (rewrite sth1; simpl; lia).
-      rewrite Nat.mod_same by lia.
+      rewrite Nat.Div0.mod_same by lia.
       match goal with
       | |- getBool (@weq _ ?P _) = _ =>
         rewrite <- (natToWord_wordToNat _ P)
       end.
       rewrite wordToNat_split2.
       rewrite wordToNat_natToWord_idempotent' by lia.
-      rewrite Nat.div_0_l by (pose proof (zero_lt_pow2 expWidthMinus2); lia).
+      rewrite Nat.Div0.div_0_l by (pose proof (zero_lt_pow2 expWidthMinus2); lia).
       auto.
       auto.
       auto.
@@ -1054,7 +1054,7 @@ Section Properties.
                              assert (th1: val3 < 2 ^ expWidthMinus2 * 2) by lia.
                              assert (th2: val3 >= 2 ^ expWidthMinus2 * 1) by lia.
                              assert (th3: 2 ^ expWidthMinus2 <> 0) by (clear; pose proof (pow2_zero expWidthMinus2); lia).
-                             pose proof (Nat.div_lt_upper_bound _ _ _ th3 th1) as th4.
+                             pose proof (Nat.Div0.div_lt_upper_bound _ _ _ th1) as th4.
                              pose proof (Nat.div_le_lower_bound _ _ _ th3 th2) as th5.
                              assert (th6: val3 / 2 ^ expWidthMinus2 = 1) by (clear - th4 th5; lia).
                              rewrite th6; auto.
@@ -1069,7 +1069,7 @@ Section Properties.
                          assert (th1: val3 < 2 ^ expWidthMinus1 * 2) by lia.
                          assert (th2: val3 >= 2 ^ expWidthMinus1 * 1) by lia.
                          assert (th3: 2 ^ expWidthMinus1 <> 0) by (clear - sth12; lia).
-                         pose proof (Nat.div_lt_upper_bound _ _ _ th3 th1) as th4.
+                         pose proof (Nat.Div0.div_lt_upper_bound _ _ _ th1) as th4.
                          pose proof (Nat.div_le_lower_bound _ _ _ th3 th2) as th5.
                          assert (th6: val3 / 2 ^ expWidthMinus1 = 1) by (clear - th4 th5; lia).
                          rewrite th6; auto.
@@ -1118,7 +1118,7 @@ Section Properties.
               nia.
             }
             pose proof (pow2_zero expWidth) as sth2.
-            pose proof (Nat.div_lt_upper_bound _ (2 ^ expWidth) 2 ltac:(lia) sth) as sth3.
+            pose proof (Nat.Div0.div_lt_upper_bound _ (2 ^ expWidth) 2 sth) as sth3.
             simpl in sth3.
             match type of sth3 with
             | ?P < 2 => case_eq P; intros
@@ -1134,7 +1134,7 @@ Section Properties.
                          @wordToNat _ val + S (2 ^ expWidthMinus1) < 2 ^ expWidthMinus1 * 2) by
                    (rewrite Nat.pow_add_r with (b := expWidthMinus1) in H0; simpl in *; assumption).
                simpl in *.
-               pose proof (Nat.div_lt_upper_bound _ (2 ^ expWidthMinus1) 2 ltac:(lia) sth7) as
+               pose proof (Nat.Div0.div_lt_upper_bound _ (2 ^ expWidthMinus1) 2 sth7) as
                    sth8.
                match goal with
                | |- context [(?P + ?Q)/?R] => destruct ((P + Q)/R); simpl; try lia
@@ -1372,7 +1372,7 @@ Section Properties.
                         (2 + 2 ^ expWidthMinus1)
                         = ((2 + 2 ^ expWidthMinus1) - (@wordToNat _ (evalExpr (normDist fn)) + 1)) + 1 * 2 ^ (expWidth + 1)) by lia.
           rewrite sth4 in *.
-          rewrite Nat.mod_add by (pose proof (pow2_zero (expWidth + 1)); lia).
+          rewrite Nat.Div0.mod_add by (pose proof (pow2_zero (expWidth + 1)); lia).
           rewrite Nat.mod_small.
           * lia.
           * pose proof (pow2_zero expWidthMinus2).
